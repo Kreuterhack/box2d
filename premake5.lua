@@ -1,7 +1,6 @@
 project "Box2D"
 	kind "StaticLib"
-	language "C++"
-	cppdialect "C++11"
+	language "C"
 	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -11,6 +10,7 @@ project "Box2D"
 	{
 		"src/**.h",
 		"src/**.cpp",
+		"src/**.c",
 		"include/**.h"
 	}
 
