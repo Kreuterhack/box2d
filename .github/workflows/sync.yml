@@ -17,5 +17,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           owner: erincatto
-          repo: box2d
+          repo: erincatto/box2d
           merge_method: rebase
