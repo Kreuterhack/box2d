@@ -1,6 +1,7 @@
 project "Box2D"
 	kind "StaticLib"
 	language "C"
+	cdialect "C11"
 	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
