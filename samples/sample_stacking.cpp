@@ -4,7 +4,6 @@
 #include "draw.h"
 #include "random.h"
 #include "sample.h"
-#include "settings.h"
 
 #include "box2d/box2d.h"
 #include "box2d/math_functions.h"
@@ -16,13 +15,13 @@
 class SingleBox : public Sample
 {
 public:
-	explicit SingleBox( Settings& settings )
-		: Sample( settings )
+	explicit SingleBox( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 2.5f };
-			g_camera.m_zoom = 3.5f;
+			m_context->camera.m_center = { 0.0f, 2.5f };
+			m_context->camera.m_zoom = 3.5f;
 		}
 
 		float extent = 1.0f;
@@ -45,19 +44,19 @@ public:
 		b2CreatePolygonShape( m_bodyId, &shapeDef, &box );
 	}
 
-	void Step( Settings& settings ) override
+	void Step() override
 	{
-		Sample::Step( settings );
+		Sample::Step();
 
-		// g_draw.DrawCircle({0.0f, 2.0f}, 1.0f, b2_colorWhite);
+		// m_context->draw.DrawCircle({0.0f, 2.0f}, 1.0f, b2_colorWhite);
 
 		b2Vec2 position = b2Body_GetPosition( m_bodyId );
 		DrawTextLine( "(x, y) = (%.2g, %.2g)", position.x, position.y );
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new SingleBox( settings );
+		return new SingleBox( context );
 	}
 
 	b2BodyId m_bodyId;
@@ -68,13 +67,13 @@ static int sampleSingleBox = RegisterSample( "Stacking", "Single Box", SingleBox
 class TiltedStack : public Sample
 {
 public:
-	explicit TiltedStack( Settings& settings )
-		: Sample( settings )
+	explicit TiltedStack( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 7.5f, 7.5f };
-			g_camera.m_zoom = 20.0f;
+			m_context->camera.m_center = { 7.5f, 7.5f };
+			m_context->camera.m_zoom = 20.0f;
 		}
 
 		{
@@ -123,9 +122,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new TiltedStack( settings );
+		return new TiltedStack( context );
 	}
 
 	static constexpr int m_columns = 10;
@@ -157,13 +156,13 @@ public:
 		e_boxShape
 	};
 
-	explicit VerticalStack( Settings& settings )
-		: Sample( settings )
+	explicit VerticalStack( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { -7.0f, 9.0f };
-			g_camera.m_zoom = 14.0f;
+			m_context->camera.m_center = { -7.0f, 9.0f };
+			m_context->camera.m_zoom = 14.0f;
 		}
 
 		{
@@ -334,7 +333,7 @@ public:
 	void UpdateGui() override
 	{
 		float height = 230.0f;
-		ImGui::SetNextWindowPos( ImVec2( 10.0f, g_camera.m_height - height - 50.0f ), ImGuiCond_Once );
+		ImGui::SetNextWindowPos( ImVec2( 10.0f, m_context->camera.m_height - height - 50.0f ), ImGuiCond_Once );
 		ImGui::SetNextWindowSize( ImVec2( 240.0f, height ) );
 
 		ImGui::Begin( "Vertical Stack", nullptr, ImGuiWindowFlags_NoResize );
@@ -359,7 +358,7 @@ public:
 
 		ImGui::PopItemWidth();
 
-		if ( ImGui::Button( "Fire Bullets" ) || glfwGetKey( g_mainWindow, GLFW_KEY_B ) == GLFW_PRESS )
+		if ( ImGui::Button( "Fire Bullets" ) || glfwGetKey( m_context->window, GLFW_KEY_B ) == GLFW_PRESS )
 		{
 			DestroyBullets();
 			FireBullets();
@@ -381,9 +380,9 @@ public:
 		ImGui::End();
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new VerticalStack( settings );
+		return new VerticalStack( context );
 	}
 
 	b2BodyId m_bullets[e_maxBullets];
@@ -406,13 +405,13 @@ public:
 		int indexA, indexB;
 	};
 
-	explicit CircleStack( Settings& settings )
-		: Sample( settings )
+	explicit CircleStack( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 5.0f };
-			g_camera.m_zoom = 6.0f;
+			m_context->camera.m_center = { 0.0f, 5.0f };
+			m_context->camera.m_zoom = 6.0f;
 		}
 
 		int shapeIndex = 0;
@@ -460,9 +459,9 @@ public:
 		}
 	}
 
-	void Step( Settings& settings ) override
+	void Step() override
 	{
-		Sample::Step( settings );
+		Sample::Step();
 
 		b2ContactEvents events = b2World_GetContactEvents( m_worldId );
 		for ( int i = 0; i < events.hitCount; ++i )
@@ -474,7 +473,7 @@ public:
 			int indexA = static_cast<int>( reinterpret_cast<intptr_t>( userDataA ) );
 			int indexB = static_cast<int>( reinterpret_cast<intptr_t>( userDataB ) );
 
-			g_draw.DrawPoint( event->point, 10.0f, b2_colorWhite );
+			m_context->draw.DrawPoint( event->point, 10.0f, b2_colorWhite );
 
 			m_events.push_back( { indexA, indexB } );
 		}
@@ -482,14 +481,13 @@ public:
 		int eventCount = (int)m_events.size();
 		for ( int i = 0; i < eventCount; ++i )
 		{
-			g_draw.DrawString( 5, m_textLine, "%d, %d", m_events[i].indexA, m_events[i].indexB );
-			m_textLine += m_textIncrement;
+			DrawTextLine( "%d, %d", m_events[i].indexA, m_events[i].indexB );
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new CircleStack( settings );
+		return new CircleStack( context );
 	}
 
 	std::vector<Event> m_events;
@@ -505,13 +503,13 @@ public:
 		int indexA, indexB;
 	};
 
-	explicit CapsuleStack( Settings& settings )
-		: Sample( settings )
+	explicit CapsuleStack( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 5.0f };
-			g_camera.m_zoom = 6.0f;
+			m_context->camera.m_center = { 0.0f, 5.0f };
+			m_context->camera.m_zoom = 6.0f;
 		}
 
 		{
@@ -550,9 +548,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new CapsuleStack( settings );
+		return new CapsuleStack( context );
 	}
 };
 
@@ -561,13 +559,13 @@ static int sampleCapsuleStack = RegisterSample( "Stacking", "Capsule Stack", Cap
 class Cliff : public Sample
 {
 public:
-	explicit Cliff( Settings& settings )
-		: Sample( settings )
+	explicit Cliff( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_zoom = 25.0f * 0.5f;
-			g_camera.m_center = { 0.0f, 5.0f };
+			m_context->camera.m_zoom = 25.0f * 0.5f;
+			m_context->camera.m_center = { 0.0f, 5.0f };
 		}
 
 		{
@@ -681,7 +679,7 @@ public:
 	void UpdateGui() override
 	{
 		float height = 60.0f;
-		ImGui::SetNextWindowPos( ImVec2( 10.0f, g_camera.m_height - height - 50.0f ), ImGuiCond_Once );
+		ImGui::SetNextWindowPos( ImVec2( 10.0f, m_context->camera.m_height - height - 50.0f ), ImGuiCond_Once );
 		ImGui::SetNextWindowSize( ImVec2( 160.0f, height ) );
 
 		ImGui::Begin( "Cliff", nullptr, ImGuiWindowFlags_NoResize );
@@ -695,9 +693,9 @@ public:
 		ImGui::End();
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new Cliff( settings );
+		return new Cliff( context );
 	}
 
 	b2BodyId m_bodyIds[9];
@@ -709,13 +707,13 @@ static int sampleCliff = RegisterSample( "Stacking", "Cliff", Cliff::Create );
 class Arch : public Sample
 {
 public:
-	explicit Arch( Settings& settings )
-		: Sample( settings )
+	explicit Arch( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 8.0f };
-			g_camera.m_zoom = 25.0f * 0.35f;
+			m_context->camera.m_center = { 0.0f, 8.0f };
+			m_context->camera.m_zoom = 25.0f * 0.35f;
 		}
 
 		b2Vec2 ps1[9] = { { 16.0f, 0.0f },
@@ -796,9 +794,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new Arch( settings );
+		return new Arch( context );
 	}
 };
 
@@ -807,13 +805,13 @@ static int sampleArch = RegisterSample( "Stacking", "Arch", Arch::Create );
 class DoubleDomino : public Sample
 {
 public:
-	explicit DoubleDomino( Settings& settings )
-		: Sample( settings )
+	explicit DoubleDomino( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 4.0f };
-			g_camera.m_zoom = 25.0f * 0.25f;
+			m_context->camera.m_center = { 0.0f, 4.0f };
+			m_context->camera.m_zoom = 25.0f * 0.25f;
 		}
 
 		{
@@ -849,9 +847,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new DoubleDomino( settings );
+		return new DoubleDomino( context );
 	}
 };
 
@@ -860,13 +858,13 @@ static int sampleDoubleDomino = RegisterSample( "Stacking", "Double Domino", Dou
 class Confined : public Sample
 {
 public:
-	explicit Confined( Settings& settings )
-		: Sample( settings )
+	explicit Confined( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.0f, 10.0f };
-			g_camera.m_zoom = 25.0f * 0.5f;
+			m_context->camera.m_center = { 0.0f, 10.0f };
+			m_context->camera.m_zoom = 25.0f * 0.5f;
 		}
 
 		{
@@ -915,9 +913,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new Confined( settings );
+		return new Confined( context );
 	}
 
 	static constexpr int m_gridCount = 25;
@@ -933,13 +931,13 @@ static int sampleConfined = RegisterSample( "Stacking", "Confined", Confined::Cr
 class CardHouse : public Sample
 {
 public:
-	explicit CardHouse( Settings& settings )
-		: Sample( settings )
+	explicit CardHouse( SampleContext* context )
+		: Sample( context )
 	{
-		if ( settings.restart == false )
+		if ( m_context->restart == false )
 		{
-			g_camera.m_center = { 0.75f, 0.9f };
-			g_camera.m_zoom = 25.0f * 0.05f;
+			m_context->camera.m_center = { 0.75f, 0.9f };
+			m_context->camera.m_zoom = 25.0f * 0.05f;
 		}
 
 		b2BodyDef bodyDef = b2DefaultBodyDef();
@@ -998,9 +996,9 @@ public:
 		}
 	}
 
-	static Sample* Create( Settings& settings )
+	static Sample* Create( SampleContext* context )
 	{
-		return new CardHouse( settings );
+		return new CardHouse( context );
 	}
 };
 
