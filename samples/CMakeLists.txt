@@ -53,6 +53,8 @@ add_library(imgui STATIC
 target_link_libraries(imgui PUBLIC glfw glad)
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+# The sample app also uses stb_truetype and this keeps the symbols separate
+target_compile_definitions(imgui PRIVATE IMGUI_STB_NAMESPACE=imgui_stb)
 set_target_properties(imgui PROPERTIES
 	CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
@@ -102,6 +104,10 @@ set_target_properties(samples PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
+
+if (BOX2D_COMPILE_WARNING_AS_ERROR)
+	set_target_properties(samples PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 target_include_directories(samples PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${JSMN_DIR})
 target_link_libraries(samples PUBLIC box2d shared imgui glfw glad enkiTS)

@@ -52,11 +52,13 @@ typedef void b2FinishTaskCallback( void* userTask, void* userContext );
 /// Optional friction mixing callback. This intentionally provides no context objects because this is called
 /// from a worker thread.
 /// @warning This function should not attempt to modify Box2D state or user application state.
+/// @ingroup world
 typedef float b2FrictionCallback( float frictionA, int userMaterialIdA, float frictionB, int userMaterialIdB );
 
 /// Optional restitution mixing callback. This intentionally provides no context objects because this is called
 /// from a worker thread.
 /// @warning This function should not attempt to modify Box2D state or user application state.
+/// @ingroup world
 typedef float b2RestitutionCallback( float restitutionA, int userMaterialIdA, float restitutionB, int userMaterialIdB );
 
 /// Result from b2World_RayCastClosest
@@ -517,9 +519,9 @@ typedef struct b2Counters
 typedef enum b2JointType
 {
 	b2_distanceJoint,
+	b2_filterJoint,
 	b2_motorJoint,
 	b2_mouseJoint,
-	b2_nullJoint,
 	b2_prismaticJoint,
 	b2_revoluteJoint,
 	b2_weldJoint,
@@ -672,10 +674,10 @@ typedef struct b2MouseJointDef
 /// @ingroup mouse_joint
 B2_API b2MouseJointDef b2DefaultMouseJointDef( void );
 
-/// A null joint is used to disable collision between two specific bodies.
+/// A filter joint is used to disable collision between two specific bodies.
 ///
-/// @ingroup null_joint
-typedef struct b2NullJointDef
+/// @ingroup filter_joint
+typedef struct b2FilterJointDef
 {
 	/// The first attached body.
 	b2BodyId bodyIdA;
@@ -688,11 +690,11 @@ typedef struct b2NullJointDef
 
 	/// Used internally to detect a valid definition. DO NOT SET.
 	int internalValue;
-} b2NullJointDef;
+} b2FilterJointDef;
 
 /// Use this to initialize your joint definition
-/// @ingroup null_joint
-B2_API b2NullJointDef b2DefaultNullJointDef( void );
+/// @ingroup filter_joint
+B2_API b2FilterJointDef b2DefaultFilterJointDef( void );
 
 /// Prismatic joint definition
 ///
@@ -804,10 +806,10 @@ typedef struct b2RevoluteJointDef
 	/// A flag to enable joint limits
 	bool enableLimit;
 
-	/// The lower angle for the joint limit in radians
+	/// The lower angle for the joint limit in radians. Minimum of -0.99*pi radians.
 	float lowerAngle;
 
-	/// The upper angle for the joint limit in radians
+	/// The upper angle for the joint limit in radians. Maximum of 0.99*pi radians.
 	float upperAngle;
 
 	/// A flag to enable the joint motor
@@ -1073,6 +1075,7 @@ typedef struct b2ContactEndTouchEvent
 } b2ContactEndTouchEvent;
 
 /// A hit touch event is generated when two shapes collide with a speed faster than the hit speed threshold.
+/// This may be reported for speculative contacts that have a confirmed impulse.
 typedef struct b2ContactHitEvent
 {
 	/// Id of the first shape
@@ -1081,7 +1084,9 @@ typedef struct b2ContactHitEvent
 	/// Id of the second shape
 	b2ShapeId shapeIdB;
 
-	/// Point where the shapes hit
+	/// Point where the shapes hit at the beginning of the time step.
+	/// This is a mid-point between the two surfaces. It could be at speculative
+	/// point where the two shapes were not touching at the beginning of the time step.
 	b2Vec2 point;
 
 	/// Normal vector pointing from shape A to shape B

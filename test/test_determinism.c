@@ -17,8 +17,8 @@
 #define TracyCFrameMark
 #endif
 
-#define EXPECTED_SLEEP_STEP 304
-#define EXPECTED_HASH 0xd6ddbc8d
+#define EXPECTED_SLEEP_STEP 323
+#define EXPECTED_HASH 0xdf9ee1fb
 
 enum
 {
@@ -141,7 +141,7 @@ static int MultithreadingTest( void )
 	return 0;
 }
 
-// Test cross platform determinism.
+// Test cross-platform determinism.
 static int CrossPlatformTest( void )
 {
 	b2WorldDef worldDef = b2DefaultWorldDef();

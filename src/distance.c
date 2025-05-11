@@ -105,15 +105,30 @@ b2SegmentDistanceResult b2SegmentDistance( b2Vec2 p1, b2Vec2 q1, b2Vec2 p2, b2Ve
 	return result;
 }
 
-// GJK using Voronoi regions (Christer Ericson) and Barycentric coordinates.
-// todo try not copying
-b2ShapeProxy b2MakeProxy( const b2Vec2* vertices, int count, float radius )
+b2ShapeProxy b2MakeProxy( const b2Vec2* points, int count, float radius )
 {
 	count = b2MinInt( count, B2_MAX_POLYGON_VERTICES );
 	b2ShapeProxy proxy;
 	for ( int i = 0; i < count; ++i )
 	{
-		proxy.points[i] = vertices[i];
+		proxy.points[i] = points[i];
+	}
+	proxy.count = count;
+	proxy.radius = radius;
+	return proxy;
+}
+
+b2ShapeProxy b2MakeOffsetProxy( const b2Vec2* points, int count, float radius, b2Vec2 position, b2Rot rotation )
+{
+	count = b2MinInt( count, B2_MAX_POLYGON_VERTICES );
+	b2Transform transform = {
+		.p = position,
+		.q = rotation,
+	};
+	b2ShapeProxy proxy;
+	for ( int i = 0; i < count; ++i )
+	{
+		proxy.points[i] = b2TransformPoint( transform, points[i] );
 	}
 	proxy.count = count;
 	proxy.radius = radius;
@@ -199,29 +214,10 @@ static void b2MakeSimplexCache( b2SimplexCache* cache, const b2Simplex* simplex 
 	}
 }
 
-static inline b2Vec2 b2ComputeSimplexClosestPoint( const b2Simplex* s )
-{
-	if ( s->count == 1 )
-	{
-		return s->v1.w;
-	}
-
-	if ( s->count == 2 )
-	{
-		return b2Weight2( s->v1.a, s->v1.w, s->v2.a, s->v2.w );
-	}
-
-	return b2Vec2_zero;
-}
-
 static void b2ComputeSimplexWitnessPoints( b2Vec2* a, b2Vec2* b, const b2Simplex* s )
 {
 	switch ( s->count )
 	{
-		case 0:
-			B2_ASSERT( false );
-			break;
-
 		case 1:
 			*a = s->v1.wA;
 			*b = s->v1.wB;
@@ -240,6 +236,8 @@ static void b2ComputeSimplexWitnessPoints( b2Vec2* a, b2Vec2* b, const b2Simplex
 			break;
 
 		default:
+			*a = b2Vec2_zero;
+			*b = b2Vec2_zero;
 			B2_ASSERT( false );
 			break;
 	}
@@ -423,6 +421,9 @@ static b2Vec2 b2SolveSimplex3( b2Simplex* s )
 b2DistanceOutput b2ShapeDistance( const b2DistanceInput* input, b2SimplexCache* cache, b2Simplex* simplexes, int simplexCapacity )
 {
 	B2_UNUSED( simplexes, simplexCapacity );
+	B2_ASSERT( input->proxyA.count > 0 && input->proxyB.count > 0 );
+	B2_ASSERT( input->proxyA.radius >= 0.0f );
+	B2_ASSERT( input->proxyB.radius >= 0.0f );
 
 	b2DistanceOutput output = { 0 };
 
@@ -505,9 +506,6 @@ b2DistanceOutput b2ShapeDistance( const b2DistanceInput* input, b2SimplexCache* 
 		}
 #endif
 
-		// Save the normal
-		nonUnitNormal = d;
-
 		// Ensure the search direction is numerically fit.
 		if ( b2Dot( d, d ) < FLT_EPSILON * FLT_EPSILON )
 		{
@@ -517,11 +515,12 @@ b2DistanceOutput b2ShapeDistance( const b2DistanceInput* input, b2SimplexCache* 
 			// The origin is probably contained by a line segment
 			// or triangle. Thus the shapes are overlapped.
 
-			// We can't return zero here even though there may be overlap.
-			// In case the simplex is a point, segment, or triangle it is difficult
-			// to determine if the origin is contained in the CSO or very close to it.
-			break;
+			// Must return overlap due to invalid normal.
+			return output;
 		}
+
+		// Save the normal
+		nonUnitNormal = d;
 
 		// Compute a tentative new simplex vertex using support points.
 		// support = support(a, d) - support(b, -d)
@@ -566,6 +565,7 @@ b2DistanceOutput b2ShapeDistance( const b2DistanceInput* input, b2SimplexCache* 
 
 	// Prepare output
 	b2Vec2 normal = b2Normalize( nonUnitNormal );
+	B2_ASSERT( b2IsNormalized( normal ) );
 	normal = b2RotateVector( input->transformA.q, normal );
 
 	b2Vec2 localPointA, localPointB;
@@ -607,11 +607,11 @@ b2CastOutput b2ShapeCast( const b2ShapeCastPairInput* input )
 	B2_ASSERT( target > tolerance );
 
 	// Prepare input for distance query
-	b2SimplexCache cache = {};
+	b2SimplexCache cache = { 0 };
 
 	float alpha = 0.0f;
 
-	b2DistanceInput distanceInput = {};
+	b2DistanceInput distanceInput = { 0 };
 	distanceInput.proxyA = input->proxyA;
 	distanceInput.proxyB = input->proxyB;
 	distanceInput.transformA = input->transformA;
@@ -619,7 +619,7 @@ b2CastOutput b2ShapeCast( const b2ShapeCastPairInput* input )
 	distanceInput.useRadii = false;
 
 	b2Vec2 delta2 = input->translationB;
-	b2CastOutput output = {};
+	b2CastOutput output = { 0 };
 
 	int iteration = 0;
 	int maxIterations = 20;
@@ -639,13 +639,14 @@ b2CastOutput b2ShapeCast( const b2ShapeCastPairInput* input )
 				}
 				else
 				{
-					if ( distanceOutput.distance == 0.0f )
+					if ( distanceOutput.distance < FLT_EPSILON )
 					{
 						// Normal may be invalid
 						return output;
 					}
 
-					// Initial overlap but distance is non-zero due to radius
+					// Initial overlap but distance is non-zero due to radius.
+					// Note: this can result in initial hits for shapes with a radius
 					B2_ASSERT( b2IsNormalized( distanceOutput.normal ) );
 					output.fraction = alpha;
 					output.point = b2MulAdd( distanceOutput.pointA, input->proxyA.radius, distanceOutput.normal );
@@ -695,6 +696,21 @@ b2CastOutput b2ShapeCast( const b2ShapeCastPairInput* input )
 }
 
 #if 0
+static inline b2Vec2 b2ComputeSimplexClosestPoint( const b2Simplex* s )
+{
+	if ( s->count == 1 )
+	{
+		return s->v1.w;
+	}
+
+	if ( s->count == 2 )
+	{
+		return b2Weight2( s->v1.a, s->v1.w, s->v2.a, s->v2.w );
+	}
+
+	return b2Vec2_zero;
+}
+
 typedef struct b2ShapeCastData
 {
 	b2Simplex simplex;
@@ -1171,7 +1187,7 @@ b2TOIOutput b2TimeOfImpact( const b2TOIInput* input )
 		// to get a separating axis.
 		distanceInput.transformA = xfA;
 		distanceInput.transformB = xfB;
-		b2DistanceOutput distanceOutput = b2ShapeDistance(&distanceInput, &cache, NULL, 0 );
+		b2DistanceOutput distanceOutput = b2ShapeDistance( &distanceInput, &cache, NULL, 0 );
 
 		// Progressive time of impact. This handles slender geometry well but introduces
 		// significant time loss.

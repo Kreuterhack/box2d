@@ -32,7 +32,7 @@ public:
 
 		float groundWidth = 66.0f * extent;
 		b2ShapeDef shapeDef = b2DefaultShapeDef();
-		//shapeDef.friction = 0.5f;
+		// shapeDef.friction = 0.5f;
 
 		b2Segment segment = { { -0.5f * 2.0f * groundWidth, 0.0f }, { 0.5f * 2.0f * groundWidth, 0.0f } };
 		b2CreateSegmentShape( groundId, &shapeDef, &segment );
@@ -136,6 +136,11 @@ public:
 
 static int sampleTiltedStack = RegisterSample( "Stacking", "Tilted Stack", TiltedStack::Create );
 
+// This sample shows some aspects of Box2D continuous collision:
+// - bullet dynamic bodies which support continuous collision with non-bullet dynamic bodies
+// - prevention of chain reaction tunneling
+// Try disabling continuous collision and firing a bullet. You might see a bullet push a
+// a through the static wall.
 class VerticalStack : public Sample
 {
 public:
@@ -163,14 +168,15 @@ public:
 
 		{
 			b2BodyDef bodyDef = b2DefaultBodyDef();
-			bodyDef.position = { 0.0f, -1.0f };
+			bodyDef.position = { 0.0f, 0.0f };
 			b2BodyId groundId = b2CreateBody( m_worldId, &bodyDef );
 
-			//b2Polygon box = b2MakeBox( 100.0f, 1.0f );
 			b2ShapeDef shapeDef = b2DefaultShapeDef();
-			//b2CreatePolygonShape( groundId, &shapeDef, &box );
 
-			b2Segment segment = { { 10.0f, 1.0f }, { 10.0f, 21.0f } };
+			b2Segment segment = { { 10.0f, 0.0f }, { 10.0f, 20.0f } };
+			b2CreateSegmentShape( groundId, &shapeDef, &segment );
+
+			segment = { { -30.0f, 0.0f }, { 30.0f, 0.0f } };
 			b2CreateSegmentShape( groundId, &shapeDef, &segment );
 
 
@@ -189,7 +195,7 @@ public:
 		}
 
 		m_shapeType = e_boxShape;
-		m_rowCount = 2;
+		m_rowCount = 12;
 		m_columnCount = 1;
 		m_bulletCount = 1;
 		m_bulletType = e_circleShape;
@@ -208,11 +214,10 @@ public:
 			}
 		}
 
-		b2Circle circle = { };
+		b2Circle circle = {};
 		circle.radius = 0.5f;
 
-		b2Polygon box = b2MakeSquare( 0.25f );
-		// b2Polygon box = b2MakeRoundedBox(0.45f, 0.45f, 0.05f);
+		b2Polygon box = b2MakeRoundedBox( 0.45f, 0.45f, 0.05f );
 
 		b2ShapeDef shapeDef = b2DefaultShapeDef();
 		shapeDef.density = 1.0f;
@@ -306,7 +311,7 @@ public:
 		{
 			b2BodyDef bodyDef = b2DefaultBodyDef();
 			bodyDef.type = b2_dynamicBody;
-			bodyDef.position = { -25.0f - i, 6.0f };
+			bodyDef.position = { -26.7f - i, 6.0f };
 			float speed = RandomFloatRange( 200.0f, 300.0f );
 			bodyDef.linearVelocity = { speed, 0.0f };
 			bodyDef.isBullet = true;
@@ -435,7 +440,7 @@ public:
 
 		b2ShapeDef shapeDef = b2DefaultShapeDef();
 		shapeDef.enableHitEvents = true;
-		//shapeDef.rollingResistance = 0.2f;
+		// shapeDef.rollingResistance = 0.2f;
 		shapeDef.material.friction = 0.0f;
 
 		float y = 0.75f;
@@ -528,15 +533,15 @@ public:
 		b2ShapeDef shapeDef = b2DefaultShapeDef();
 
 		// rolling resistance increases stacking stability
-		//shapeDef.rollingResistance = 0.2f;
+		// shapeDef.rollingResistance = 0.2f;
 
 		float y = 2.0f * a;
 
 		for ( int i = 0; i < 20; ++i )
 		{
 			bodyDef.position.y = y;
-			//bodyDef.position.x += ( i & 1 ) == 1 ? -0.5f * a : 0.5f * a;
-			//bodyDef.linearVelocity = { 0.0f, -10.0f };
+			// bodyDef.position.x += ( i & 1 ) == 1 ? -0.5f * a : 0.5f * a;
+			// bodyDef.linearVelocity = { 0.0f, -10.0f };
 			b2BodyId bodyId = b2CreateBody( m_worldId, &bodyDef );
 
 			b2CreateCapsuleShape( bodyId, &shapeDef, &capsule );
